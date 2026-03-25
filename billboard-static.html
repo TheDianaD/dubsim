@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ROI Labs - Time Evolution Billboard (6096x3048)</title> 
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    :root {
+      --dub-orange: #fea972;
+      --dub-green: #4CAF50;
+      --bg-dark: #0a0a0a;
+      --card-bg: #111111;
+    }
+
+    body {
+      margin: 0; background-color: #000; color: #fff;
+      font-family: 'Inter', -apple-system, system-ui, sans-serif;
+      min-height: 100vh; overflow-y: auto;
+      display: flex; justify-content: center; align-items: flex-start;
+      padding: clamp(12px, 2vw, 24px); box-sizing: border-box;
+    }
+
+    .billboard-frame {
+      width: 100%; max-width: 1600px;
+      background-color: var(--bg-dark); border-radius: 24px;
+      display: flex; flex-direction: column;
+      padding: clamp(16px, 3vw, 40px) clamp(16px, 4vw, 50px);
+      box-sizing: border-box; position: relative; border: 1px solid #222;
+      /* Always size to content — never clip children */
+      overflow: visible;
+    }
+
+    .header-section { border-left: clamp(4px, 0.6vw, 8px) solid var(--dub-orange); padding-left: clamp(10px, 1.5vw, 20px); margin-bottom: clamp(10px, 1.5vw, 15px); flex-shrink: 0; }
+    .header-title { font-size: clamp(18px, 3vw, 52px); font-weight: 900; line-height: 0.95; margin: 0; text-transform: uppercase; letter-spacing: -1px; }
+    .header-accent { color: var(--dub-orange); }
+
+    .main-grid {
+      display: grid;
+      /* Each card needs at least 300px — if there isn't room for two, they wrap automatically */
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: clamp(10px, 1.5vw, 20px);
+      margin-bottom: clamp(10px, 1.5vw, 15px);
+    }
+
+    .card {
+      background: var(--card-bg); border-radius: clamp(12px, 2vw, 25px); padding: clamp(12px, 1.5vw, 20px);
+      display: flex; flex-direction: column;
+      border: 1px solid #222; transition: border 0.3s ease;
+      /* Fixed height so chart always has room */
+      height: clamp(200px, 28vw, 300px);
+    }
+
+    .active-card { border-color: var(--dub-orange); }
+
+    .chart-box { flex-grow: 1; width: 100%; min-height: 0; position: relative; }
+
+    .card-footer { margin-top: 8px; display: flex; align-items: flex-end; justify-content: space-between; gap: clamp(8px, 1vw, 15px); flex-wrap: wrap; }
+    .footer-left { flex-grow: 1; min-width: 0; }
+
+    .metric-label { font-size: clamp(8px, 0.8vw, 11px); color: #444; text-transform: uppercase; font-weight: 800; letter-spacing: 1px; margin-bottom: 4px;}
+    
+    .giant-select {
+      background: #1a1a1a; color: white; border: 1px solid #333;
+      padding: clamp(5px, 0.7vw, 8px) clamp(8px, 1vw, 12px);
+      font-size: clamp(11px, 1.1vw, 14px); font-weight: 600; border-radius: 10px;
+      width: 100%; appearance: none;
+      background-image: url('data:image/svg+xml;utf8,<svg fill="%23fea972" height="20" viewBox="0 0 24 24" width="20" xmlns="http://www.w3.org/2000/svg"><path d="M7 10l5 5 5-5z"/></svg>');
+      background-repeat: no-repeat; background-position: right 10px center;
+    }
+
+    .metric-value { font-size: clamp(18px, 3.2vw, 52px); font-weight: 900; color: var(--dub-orange); line-height: 1; white-space: nowrap; }
+    .metric-value.green { color: var(--dub-green); }
+
+    .slider-section { background: #080808; padding: clamp(10px, 1.2vw, 15px) clamp(14px, 2.5vw, 35px); border-radius: 20px; border: 1px solid #1a1a1a; flex-shrink: 0; margin-bottom: clamp(10px, 1.2vw, 15px); }
+    .slider-header { display: flex; justify-content: space-between; align-items: center; }
+    
+    .time-slider { 
+      width: 100%; height: clamp(6px, 0.9vw, 12px); border-radius: 6px; background: #1a1a1a; 
+      outline: none; -webkit-appearance: none; margin: 10px 0 5px 0;
+    }
+    .time-slider::-webkit-slider-thumb {
+      -webkit-appearance: none; width: clamp(20px, 2.5vw, 35px); height: clamp(20px, 2.5vw, 35px);
+      background: var(--dub-orange); border-radius: 50%; cursor: pointer;
+      border: 3px solid #fff;
+    }
+
+    .footer-brand { display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; flex-wrap: wrap; gap: 10px; }
+    .logo { height: clamp(24px, 3vw, 40px); opacity: 0.8; }
+    
+    .qr-cta-group { display: flex; align-items: center; gap: clamp(8px, 1vw, 15px); }
+    .qr-box { width: clamp(36px, 5vw, 60px); height: clamp(36px, 5vw, 60px); background: #fff; border-radius: 8px; padding: 4px; display: flex; align-items: center; justify-content: center; }
+    .qr-box img { width: 100%; height: 100%; object-fit: contain; }
+    
+    .cta-text { font-size: clamp(11px, 1.4vw, 22px); font-weight: 900; color: var(--dub-orange); text-transform: uppercase; letter-spacing: -0.5px; }
+
+
+  </style>
+</head>
+<body>
+
+  <div class="billboard-frame">
+    <header class="header-section">
+      <h1 class="header-title">Make the professionals <br><span class="header-accent">work for you</span></h1>
+    </header>
+
+    <main class="main-grid">
+      <section id="card-diy" class="card">
+        <div class="chart-box"><canvas id="stockChart"></canvas></div>
+        <div class="card-footer">
+          <div class="footer-left">
+            <div class="metric-label">Base Market Growth</div>
+            <select id="stock" class="giant-select">
+              <option value="nyse">NYSE Average (1.5%)</option>
+              <option value="sp500">S&P 500 Index (10%)</option>
+            </select>
+          </div>
+          <div id="earnings" class="metric-value">$1,000</div>
+        </div>
+      </section>
+
+      <section id="card-pro" class="card">
+        <div class="chart-box"><canvas id="investorChart"></canvas></div>
+        <div class="card-footer">
+          <div class="footer-left">
+            <div class="metric-label">Profit off a Pro</div>
+            <select id="investor" class="giant-select">
+              <option value="pelosi">Nancy Pelosi (+67%)</option>
+              <option value="powell">Jerome Powell (+62%)</option>
+            </select>
+          </div>
+          <div id="investorEarnings" class="metric-value green">$1,000</div>
+        </div>
+      </section>
+    </main>
+
+    <section class="slider-section">
+       <div class="slider-header">
+         <label style="font-weight: 800; color: #333; text-transform: uppercase; letter-spacing: 2px; font-size: 10px;">Investment Timeline (5 Years)</label>
+         <div id="timeValue" style="font-size: clamp(13px, 1.5vw, 24px); font-weight: 900; color: var(--dub-orange);">YEAR 0</div>
+       </div>
+       <input type="range" id="timeSlider" class="time-slider" min="0" max="60" step="1" value="0">
+    </section>
+
+    <footer class="footer-brand">
+      <img src="dub-outline-logo.png" class="logo">
+      <div class="qr-cta-group">
+        <div class="cta-text">Invest. Copy. Profit. Now:</div>
+        <div class="qr-box">
+          <img src="qr-code.png" alt="QR Code">
+        </div>
+      </div>
+    </footer>
+  </div>
+
+  <script>
+    let stockChart, investorChart;
+    const INITIAL_CASH = 1000;
+    const MAX_VALUE = 15000;
+
+    function generateMarketPath(monthlyRate, volatility) {
+      let arr = [INITIAL_CASH];
+      for (let i = 1; i <= 60; i++) {
+        const hasShock = Math.random() < 0.16;
+        const shockDir = Math.random() < 0.5 ? 1 : -1;
+        const shock = hasShock ? shockDir * (0.07 + Math.random() * 0.09) : 0;
+        const noise = (Math.random() * volatility * 2 - volatility);
+        const change = 1 + monthlyRate + noise + shock;
+        arr.push(Math.min(Math.max(arr[i - 1] * change, 50), MAX_VALUE));
+      }
+      return arr;
+    }
+
+    function generatePelosiPath() {
+      let arr = [INITIAL_CASH];
+      for (let i = 1; i <= 60; i++) {
+        const roll = Math.random();
+        let change;
+        if (roll < 0.12) {
+          change = 1 + 0.045 + (Math.random() * 0.10);
+        } else if (roll < 0.20) {
+          change = 1 - (Math.random() * 0.06);
+        } else {
+          change = 1 + 0.045 + (Math.random() * 0.05 - 0.015);
+        }
+        arr.push(Math.min(Math.max(arr[i - 1] * change, 50), MAX_VALUE));
+      }
+      return arr;
+    }
+
+    function generatePowellPath() {
+      let arr = [INITIAL_CASH];
+      for (let i = 1; i <= 60; i++) {
+        const roll = Math.random();
+        let change;
+        if (roll < 0.08) {
+          change = 1 - (Math.random() * 0.04);
+        } else if (roll < 0.18) {
+          change = 1 + 0.042 + (Math.random() * 0.05);
+        } else {
+          change = 1 + 0.042 + (Math.random() * 0.018 - 0.005);
+        }
+        arr.push(Math.min(Math.max(arr[i - 1] * change, 50), MAX_VALUE));
+      }
+      return arr;
+    }
+
+    const paths = {
+      nyse:   generateMarketPath(0.0012, 0.055),
+      sp500:  generateMarketPath(0.008,  0.070),
+      pelosi: (() => { const p = generatePelosiPath(); p[60] = 13203; return p; })(),
+      powell: generatePowellPath()
+    };
+
+    function initCharts() {
+      const commonOptions = {
+        responsive: true, maintainAspectRatio: false,
+        animation: false,
+        scales: {
+          y: { display: false, beginAtZero: true, min: 0, max: MAX_VALUE },
+          x: { display: true, grid: { display: false }, ticks: { color: '#222' } }
+        },
+        plugins: { legend: { display: false }, tooltip: { enabled: false } },
+        elements: { line: { tension: 0.1, fill: true }, point: { radius: 0 } }
+      };
+
+      const ctx1 = document.getElementById('stockChart').getContext('2d');
+      const grad1 = ctx1.createLinearGradient(0, 0, 0, 300);
+      grad1.addColorStop(0, 'rgba(144, 238, 144, 0.3)'); grad1.addColorStop(1, 'transparent');
+
+      stockChart = new Chart(ctx1, {
+        type: 'line',
+        data: { labels: Array(61).fill(''), datasets: [{ data: paths.sp500, borderColor: '#90EE90', backgroundColor: grad1, borderWidth: 4 }] },
+        options: commonOptions
+      });
+
+      const ctx2 = document.getElementById('investorChart').getContext('2d');
+      const grad2 = ctx2.createLinearGradient(0, 0, 0, 300);
+      grad2.addColorStop(0, 'rgba(76, 175, 80, 0.3)'); grad2.addColorStop(1, 'transparent');
+
+      investorChart = new Chart(ctx2, {
+        type: 'line',
+        data: { labels: Array(61).fill(''), datasets: [{ data: paths.pelosi, borderColor: '#4CAF50', backgroundColor: grad2, borderWidth: 5 }] },
+        options: {
+          ...commonOptions,
+          elements: { line: { tension: 0.3, fill: true }, point: { radius: 0 } }
+        }
+      });
+
+      // Set initial displayed values to year 5
+      document.getElementById('earnings').textContent = `$${Math.floor(paths.sp500[60]).toLocaleString()}`;
+      document.getElementById('investorEarnings').textContent = `$${Math.floor(paths.pelosi[60]).toLocaleString()}`;
+      document.getElementById('timeValue').textContent = 'YEAR 5';
+      document.getElementById('timeSlider').value = 60;
+    }
+
+    function updateFrame(months) {
+      document.getElementById('timeValue').textContent = `YEAR ${Math.floor(months/12)}`;
+
+      const stockKey = document.getElementById('stock').value;
+      const currentMarket = paths[stockKey].slice(0, months + 1);
+      stockChart.data.datasets[0].data = currentMarket;
+      stockChart.update('none');
+      document.getElementById('earnings').textContent = `$${Math.floor(paths[stockKey][months]).toLocaleString()}`;
+
+      const proKey = document.getElementById('investor').value;
+      const currentPro = paths[proKey].slice(0, months + 1);
+      investorChart.data.datasets[0].data = currentPro;
+      investorChart.update('none');
+      document.getElementById('investorEarnings').textContent = `$${Math.floor(paths[proKey][months]).toLocaleString()}`;
+    }
+
+    window.onload = () => {
+      initCharts();
+      document.getElementById('timeSlider').oninput = (e) => updateFrame(parseInt(e.target.value));
+      document.getElementById('stock').onchange = () => updateFrame(parseInt(document.getElementById('timeSlider').value));
+      document.getElementById('investor').onchange = () => updateFrame(parseInt(document.getElementById('timeSlider').value));
+    };
+  </script>
+</body>
+</html>
